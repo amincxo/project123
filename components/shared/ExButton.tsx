@@ -7,7 +7,7 @@ interface MuiButtonProps {
   onClick?: () => void;
 }
 
-function Exbutton({ title, className = '', onClick }: MuiButtonProps) {
+function Exbutton({ title, className ='', onClick }: MuiButtonProps) {
   return (
     <button
       onClick={onClick}
