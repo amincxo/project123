@@ -1,8 +1,8 @@
 'use client';
 import React, { useState } from 'react';
-import Exbutton from '@/components/shared/ExButton';
-import ExInput from '@/components/shared/ExInput';
-import Logo from '@/components/shared/Logo';
+import Exbutton from '@/components/shared/module/ExButton';
+import ExInput from '@/components/shared/module/ExInput';
+import Logo from '@/components/shared/module/Logo';
 
 function LoginPage() {
   const [formData, setFormData] = useState({
