@@ -1,8 +1,11 @@
 'use client';
 import React, { useState } from 'react';
+
+
 import Exbutton from '@/components/shared/module/ExButton';
 import ExInput from '@/components/shared/module/ExInput';
 import Logo from '@/components/shared/module/Logo';
+
 
 function LoginPage() {
   const [formData, setFormData] = useState({
@@ -34,6 +37,8 @@ function LoginPage() {
     .catch(error => console.error("خطا در ارسال درخواست:", error));
   };
 
+
+  
   return (
     <div className="min-h-screen flex items-center justify-center md:bg-gray-50">
       <div className="w-full max-w-md p-6 bg-white rounded-lg md:shadow-md">
