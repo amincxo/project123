@@ -1,12 +1,17 @@
+'use client';
+
 import React from 'react'
+
 import Image from 'next/image'
 
 interface MuiInputProps {
   placeholder?: string
+  name?: string
   type?: string
   logo?: string
   className?: string
   value?: string
+  data?:{name:string}
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
 }
 
@@ -19,7 +24,7 @@ const ExInput = React.forwardRef<HTMLInputElement, MuiInputProps>(
           type={type}
           placeholder={placeholder}
           dir='rtl'
-          className="w-full p-2 border rounded pr-10 py-3" 
+          className="w-full p-2 border rounded pr-10 py-3 border-gray-300 " 
           {...props}
         />
         {logo && (
