@@ -1,8 +1,38 @@
+import React from 'react'
+
+
+
 import Exbutton from '@/components/shared/ExButton'
 import ExInput from '@/components/shared/ExInput'
 import Logo from '@/components/shared/Logo'
-import React from 'react'
 
+
+
+const LoginHandler = async () => {
+fetch("https://api.irxe.com/api/v1/login", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json", 
+  },
+  body: JSON.stringify({ 
+    mobile: "09123456789", 
+    password: "userPassword123" 
+  })
+})
+  .then(response => {
+    if (!response.ok) {
+      throw new Error("خطا در پاسخ سرور");
+    }
+    return response.json(); 
+  })
+  .then(data => {
+    console.log("موفقیت‌آمیز!", data);
+   
+  })
+  .catch(error => {
+    console.error("خطا در ارسال درخواست:", error);
+  });
+}
 function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center md:bg-gray-50 ">
@@ -26,6 +56,7 @@ function LoginPage() {
           />
           <Exbutton
             title='ورود'
+            onClick={LoginHandler}
           />
         </div>
       </div>
