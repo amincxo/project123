@@ -56,7 +56,7 @@ function LoginPage() {
           />
           <Exbutton
             title='ورود'
-            onClick={LoginHandler}
+            // onClick={LoginHandler}
           />
         </div>
       </div>
