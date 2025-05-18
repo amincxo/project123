@@ -2,10 +2,12 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { setCookie } from 'cookies-next';
+import { useState } from 'react';
+
+
 import Exbutton from '@/components/shared/module/ExButton';
 import ExInput from '@/components/shared/module/ExInput';
 import Logo from '@/components/shared/module/Logo';
-import { useState } from 'react';
 
 interface LoginFormData {
   mobile: string;
@@ -81,7 +83,7 @@ export default function LoginPage() {
           sameSite: 'strict'
         });
       }
-      router.push('/dashboard');
+      router.push('/');
     },
     onError: (error: Error) => {
       setApiError(error.message);
@@ -154,8 +156,8 @@ export default function LoginPage() {
 
             <Exbutton
               title={loginMutation.isPending ? 'در حال ورود...' : 'ورود'}
-              type="submit"
-              disabled={loginMutation.isPending}
+              // type="submit"
+              // disabled={loginMutation.isPending}
               className="w-full mt-4"
             />
           </div>
