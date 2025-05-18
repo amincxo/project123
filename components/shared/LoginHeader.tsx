@@ -7,23 +7,22 @@ interface ChildProps {
 
 function LoginHeader({ setIsMenuOpen }: ChildProps) {
   return (
-    <div className="mb-8 flex space-x-4">
-    <Link 
+    <div className="mt-auto mb-8 lg:m-6 space-y-3 lg:space-y-6">
+      <Link 
         href="/login" 
-        className="border border-blue-600 text-blue-600 text-center rounded-lg p-2 flex-1"
+        className="block border border-blue-600 text-blue-600 text-center py-2 rounded-lg"
         onClick={() => setIsMenuOpen(false)}
-    >
+      >
         ورود
-    </Link>
-    <Link 
+      </Link>
+      <Link 
         href="/register" 
-        className="text-black text-center p-2 flex-1"
+        className="block text-black text-center py-2"
         onClick={() => setIsMenuOpen(false)}
-    >
+      >
         ثبت نام
-    </Link>
+      </Link>
     </div>
-
   );
 }
 
