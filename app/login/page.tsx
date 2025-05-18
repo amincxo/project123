@@ -3,8 +3,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { setCookie } from 'cookies-next';
 import { useState } from 'react';
-
-
 import Exbutton from '@/components/shared/module/ExButton';
 import ExInput from '@/components/shared/module/ExInput';
 import Logo from '@/components/shared/module/Logo';
@@ -32,7 +30,7 @@ interface FormErrors {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<LoginFormData>({
     mobile: '',
     password: ''
   });
@@ -65,7 +63,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include',
+        credentials: 'include', // برای کوکی‌های HTTP-only
         body: JSON.stringify(loginData)
       });
       
@@ -73,16 +71,25 @@ export default function LoginPage() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'ورود ناموفق بود');
       }
+      
       return response.json();
     },
     onSuccess: (data) => {
+      // ذخیره توکن در کوکی (برای دسترسی کلاینت)
       if (data.data.token) {
         setCookie('authToken', data.data.token, {
-          maxAge: 60 * 60 * 24 * 7,
+          maxAge: 60 * 60 * 24 * 7, // 1 هفته
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict'
         });
       }
+      
+      // ذخیره توکن تازه‌سازی در حافظه مرورگر
+      if (data.data.refresh_token) {
+        localStorage.setItem('refreshToken', data.data.refresh_token);
+      }
+      
+      // ریدایرکت به صفحه اصلی
       router.push('/');
     },
     onError: (error: Error) => {
@@ -93,10 +100,12 @@ export default function LoginPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
+    
+    // پاک کردن خطا هنگام تایپ
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
+    if (apiError) setApiError(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -140,6 +149,7 @@ export default function LoginPage() {
               required
               error={!!errors.mobile}
               helperText={errors.mobile}
+              disabled={loginMutation.isPending}
             />
 
             <ExInput
@@ -152,13 +162,15 @@ export default function LoginPage() {
               required
               error={!!errors.password}
               helperText={errors.password}
+              disabled={loginMutation.isPending}
             />
 
             <Exbutton
               title={loginMutation.isPending ? 'در حال ورود...' : 'ورود'}
-              // type="submit"
-              // disabled={loginMutation.isPending}
+              type="submit"
+              disabled={loginMutation.isPending}
               className="w-full mt-4"
+              loading={loginMutation.isPending}
             />
           </div>
         </form>
