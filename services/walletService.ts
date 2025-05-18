@@ -17,16 +17,20 @@ type ApiResponse = {
 };
 
 export const getAllWallets = async (): Promise<ApiResponse> => {
-  try {
-    const response = await fetch('https://api.irxe.com/api/modules/crypto/v1/client/getAllWallets');
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+  const response = await fetch('https://api.irxe.com/api/modules/crypto/v1/client/getAllWallets', {
+    method: 'GET',
+    credentials: 'include', // این خط باعث ارسال خودکار کوکی‌ها می‌شود
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching wallets:', error);
-    throw error;
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Unauthorized - Please login again');
+    }
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
+
+  return await response.json();
 };
