@@ -14,8 +14,8 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
   const [formData, setFormData] = useState({
     address: '',
     memo: '',
-    network: 'XRP',
-    symbol: 'XRP',
+    network: '',
+    symbol: '',
     title: ''
   });
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -88,7 +88,7 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
               value={formData.title}
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="مثبت: کیف پول اصلی"
+              placeholder="مثال: کیف پول اصلی"
               required
             />
           </div>
