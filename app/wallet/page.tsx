@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react'
 import WalletList from '../../components/WalletList'
+export const dynamic = 'force-dynamic';
 
 function wallets() {
   return (
