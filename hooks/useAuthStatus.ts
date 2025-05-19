@@ -1,17 +1,38 @@
 // hooks/useAuthStatus.ts
 import { useQuery } from '@tanstack/react-query';
 
-export const useAuthStatus = () =>
-  useQuery({
+type User = {
+  _id: string;
+  fullName: string;
+  email: string;
+  // سایر فیلدهای کاربر
+};
+
+type AuthStatusResponse = {
+  status: 'success' | 'error';
+  status_code: number;
+  user: User | null;
+};
+
+export const useAuthStatus = () => {
+  return useQuery<AuthStatusResponse>({
     queryKey: ['authStatus'],
     queryFn: async () => {
-      const res = await fetch('https://api.irxe.com/api/v1/authentication-status', {
-        credentials: 'include',
+      const response = await fetch('https://api.irxe.com/api/v1/authentication-status', {
+        method: 'GET',
+        credentials: 'include', // برای ارسال کوکی‌ها
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      if (!res.ok) {
-        throw new Error('Unauthorized');
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-      return res.json();
+
+      return await response.json();
     },
-    retry: false,
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 دقیقه
   });
+};

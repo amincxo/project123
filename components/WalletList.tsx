@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAllWallets } from '../services/walletService';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import AddWalletModal from './AddWalletModal';
 import DeleteWalletModal from './DeleteWalletModal';
@@ -22,13 +22,17 @@ const WalletList = () => {
   } = useQuery({
     queryKey: ['wallets'],
     queryFn: getAllWallets,
-    retry: 1,
-    onError: (err) => {
-      if (err.message.includes('Unauthorized')) {
-        router.push('/login');
-      }
-    },
+    retry: 1
   });
+
+  useEffect(() => {
+    if (isError && (
+      (error as any)?.response?.status === 401 || 
+      (error as any)?.message?.includes('Unauthorized')
+    )) {
+      router.push('/login');
+    }
+  }, [isError, error, router]);
 
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
@@ -47,22 +51,14 @@ const WalletList = () => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64 ">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
-  if (isError) {
-    return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-        {error.message}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6  ">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">لیست کیف پول‌ها</h2>
         <button
@@ -135,14 +131,12 @@ const WalletList = () => {
         </div>
       )}
 
-      {/* مودال افزودن کیف پول جدید */}
       <AddWalletModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSuccess={handleAddSuccess}
       />
 
-      {/* مودال حذف کیف پول */}
       {walletToDelete && (
         <DeleteWalletModal
           walletId={walletToDelete}

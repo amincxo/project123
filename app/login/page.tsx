@@ -2,10 +2,11 @@
 import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { setCookie } from 'cookies-next';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Exbutton from '@/components/shared/module/ExButton';
 import ExInput from '@/components/shared/module/ExInput';
 import Logo from '@/components/shared/module/Logo';
+import { useAuthStatus } from '@/hooks/useAuthStatus';
 
 interface LoginFormData {
   mobile: string;
@@ -37,6 +38,16 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
 
+  // استفاده از هوک موجود برای بررسی وضعیت احراز هویت
+  const { data: authData, isLoading: isAuthLoading, isError: isAuthError } = useAuthStatus();
+
+  // ریدایرکت اگر کاربر قبلاً لاگین کرده باشد
+  useEffect(() => {
+    if (authData?.status === 'success' || authData?.user) {
+      router.push('/');
+    }
+  }, [authData, router]);
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
     
@@ -63,7 +74,7 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: 'include', // برای کوکی‌های HTTP-only
+        credentials: 'include',
         body: JSON.stringify(loginData)
       });
       
@@ -75,7 +86,6 @@ export default function LoginPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      // ذخیره توکن در کوکی (برای دسترسی کلاینت)
       if (data.data.token) {
         setCookie('authToken', data.data.token, {
           maxAge: 60 * 60 * 24 * 7, // 1 هفته
@@ -84,12 +94,10 @@ export default function LoginPage() {
         });
       }
       
-      // ذخیره توکن تازه‌سازی در حافظه مرورگر
       if (data.data.refresh_token) {
         localStorage.setItem('refreshToken', data.data.refresh_token);
       }
       
-      // ریدایرکت به صفحه اصلی
       router.push('/');
     },
     onError: (error: Error) => {
@@ -101,7 +109,6 @@ export default function LoginPage() {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // پاک کردن خطا هنگام تایپ
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -116,6 +123,20 @@ export default function LoginPage() {
       loginMutation.mutate(formData);
     }
   };
+
+  // نمایش اسپینر هنگام بررسی وضعیت احراز هویت
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex bg-white items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // اگر کاربر لاگین کرده، چیزی نمایش نده (ریدایرکت در useEffect انجام می‌شود)
+  if (authData?.status === 'success' && authData?.user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex bg-white items-center justify-center md:bg-gray-50">

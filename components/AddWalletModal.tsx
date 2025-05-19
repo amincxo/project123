@@ -1,34 +1,162 @@
 'use client';
 
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface AddWalletModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  isMobile?: boolean;
 }
 
-const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => {
+interface Network {
+  network: string;
+  name: string;
+  addressRegex: string;
+  coin: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  symbol: string;
+  logo: string;
+  buy_from_iranicard_network_list: Network[];
+}
+
+interface CoinOption {
+  value: string;
+  label: string;
+  logo: string;
+}
+
+interface NetworkOption {
+  value: string;
+  label: string;
+  regex: RegExp;
+}
+
+const debounce = (func: Function, delay: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+};
+
+const AddWalletModal = ({ isOpen, onClose, onSuccess, isMobile = false }: AddWalletModalProps) => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     address: '',
     memo: '',
+    coin: '',
     network: '',
-    symbol: '',
     title: ''
   });
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [addressError, setAddressError] = useState('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationState, setValidationState] = useState<'empty' | 'validating' | 'invalid' | 'valid'>('empty');
+
+  const { 
+    data: products, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery<Product[]>({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const response = await fetch('https://api.irxe.com/api/public/modules/crypto/v1/client/listProduct');
+      if (!response.ok) {
+        throw new Error('خطا در دریافت لیست محصولات');
+      }
+      const data = await response.json();
+      if (!data?.data || !Array.isArray(data.data)) {
+        throw new Error('فرمت داده دریافتی نامعتبر است');
+      }
+      return data.data;
+    },
+    retry: 3,
+    retryDelay: 1000
+  });
+
+  const coinOptions: CoinOption[] = products
+    ? products.map(product => ({
+        value: product.symbol,
+        label: `${product.name} (${product.symbol})`,
+        logo: product.logo
+      }))
+    : [];
+
+  const networkOptions: NetworkOption[] = formData.coin && products
+    ? (products.find(p => p.symbol === formData.coin)?.buy_from_iranicard_network_list || [])
+        .map(network => ({
+          value: network.network,
+          label: network.name,
+          regex: new RegExp(network.addressRegex)
+        }))
+    : [];
+
+  const validateAddressDebounced = useCallback(debounce(async (address: string) => {
+    if (!formData.network || !address) {
+      setAddressError('');
+      setIsValidating(false);
+      setValidationState('empty');
+      return;
+    }
+
+    setIsValidating(true);
+    setValidationState('validating');
+    
+    try {
+      const selectedNetwork = networkOptions.find(n => n.value === formData.network);
+      if (!selectedNetwork) {
+        setAddressError('شبکه انتخاب شده نامعتبر است');
+        setValidationState('invalid');
+        return;
+      }
+
+      const isValid = selectedNetwork.regex.test(address);
+      setAddressError(isValid ? '' : 'آدرس ولت نامعتبر است');
+      setValidationState(isValid ? 'valid' : 'invalid');
+    } finally {
+      setIsValidating(false);
+    }
+  }, 9000), [formData.network, networkOptions]);
+
+  useEffect(() => {
+    if (formData.address) {
+      validateAddressDebounced(formData.address);
+    }
+  }, [formData.address, formData.network, validateAddressDebounced]);
 
   const addWalletMutation = useMutation({
     mutationFn: async (walletData: typeof formData) => {
-      const response = await fetch('https://api.irxe.com/api/modules/crypto/v1/client/addWallet', {
+      if (isValidating) {
+        throw new Error('لطفا صبر کنید تا آدرس بررسی شود');
+      }
+      
+      if (validationState === 'invalid') {
+        throw new Error('آدرس ولت نامعتبر است');
+      }
+
+      const response = await fetch('https://api.irxe.com/api/modules/crypto/v1/client/saveWallet/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(walletData)
+        body: JSON.stringify({
+          address: walletData.address,
+          memo: walletData.memo,
+          network: walletData.network,
+          symbol: walletData.coin,
+          title: walletData.title
+        })
       });
 
       if (!response.ok) {
@@ -39,16 +167,37 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
     onSuccess: () => {
       toast.success('کیف پول با موفقیت اضافه شد');
       onSuccess();
-      onClose();
+      if (isMobile) {
+        router.back();
+      } else {
+        onClose();
+      }
     },
     onError: (error: Error) => {
       toast.error(error.message);
     }
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'address') {
+      validateAddressDebounced(value);
+    }
+  };
+
+  const handleCoinChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const coin = e.target.value;
+    setFormData(prev => ({ 
+      ...prev, 
+      coin,
+      network: ''
+    }));
+  };
+
+  const handleNetworkChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFormData(prev => ({ ...prev, network: e.target.value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,11 +213,15 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
     }
   };
 
+  const handleRetry = () => {
+    refetch();
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 w-full max-w-md shadow-xl">
+    <div className={`fixed inset-0 ${isMobile ? 'bg-white' : 'bg-black/30 backdrop-blur-sm'} flex items-center justify-center z-50 p-4`}>
+      <div className={`${isMobile ? 'w-full h-full' : 'w-full max-w-md'} bg-white rounded-2xl p-6 shadow-xl relative`}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-2xl font-bold text-gray-800">افزودن کیف پول جدید</h3>
           <button 
@@ -95,48 +248,113 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-gray-700 mb-1">ارز</label>
+              <select
+                name="coin"
+                value={formData.coin}
+                onChange={handleCoinChange}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+                disabled={isLoading || !!error}
+              >
+                {isLoading ? (
+                  <option value="">در حال دریافت لیست ارزها...</option>
+                ) : error ? (
+                  <option value="">خطا در دریافت ارزها</option>
+                ) : (
+                  <>
+                    <option value="">انتخاب ارز</option>
+                    {coinOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+              {error && (
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="mt-1 text-xs text-blue-500 hover:text-blue-700"
+                >
+                  تلاش مجدد
+                </button>
+              )}
+            </div>
+
+            <div>
               <label className="block text-gray-700 mb-1">شبکه</label>
               <select
                 name="network"
                 value={formData.network}
-                onChange={handleChange}
+                onChange={handleNetworkChange}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
+                disabled={isLoading || !!error || !formData.coin}
               >
-                <option value="XRP">XRP</option>
-                <option value="BTC">Bitcoin</option>
-                <option value="ETH">Ethereum</option>
-                <option value="TRX">Tron</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-gray-700 mb-1">نماد</label>
-              <select
-                name="symbol"
-                value={formData.symbol}
-                onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="XRP">XRP</option>
-                <option value="BTC">BTC</option>
-                <option value="ETH">ETH</option>
-                <option value="TRX">TRX</option>
+                {isLoading ? (
+                  <option value="">در حال دریافت لیست شبکه‌ها...</option>
+                ) : error ? (
+                  <option value="">خطا در دریافت شبکه‌ها</option>
+                ) : !formData.coin ? (
+                  <option value="">ابتدا ارز را انتخاب کنید</option>
+                ) : networkOptions.length === 0 ? (
+                  <option value="">شبکه‌ای برای این ارز یافت نشد</option>
+                ) : (
+                  <>
+                    <option value="">انتخاب شبکه</option>
+                    {networkOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-gray-700 mb-1">آدرس کیف پول</label>
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="مثال: DFGSDFG..."
-              required
-            />
+            <div className="relative">
+              <input
+                type="text"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                className={`w-full px-4 py-2 rounded-lg border ${
+                  validationState === 'invalid' ? 'border-red-500' : 
+                  validationState === 'validating' ? 'border-yellow-500' : 
+                  validationState === 'valid' ? 'border-green-500' :
+                  'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                placeholder="مثال: DFGSDFG..."
+                required
+              />
+              {validationState === 'validating' && (
+                <div className="absolute left-3 top-2.5">
+                  <svg className="animate-spin h-5 w-5 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
+              {validationState === 'valid' && (
+                <div className="absolute left-3 top-2.5 text-green-500">
+                  ✓
+                </div>
+              )}
+            </div>
+            {validationState === 'validating' && (
+              <p className="mt-1 text-sm text-yellow-500">در حال بررسی آدرس...</p>
+            )}
+            {validationState === 'invalid' && (
+              <p className="mt-1 text-sm text-red-500">{addressError}</p>
+            )}
+            {validationState === 'valid' && (
+              <p className="mt-1 text-sm text-green-500">آدرس معتبر است</p>
+            )}
           </div>
 
           <div>
@@ -151,18 +369,20 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
             />
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              انصراف
-            </button>
+          <div className={`${isMobile ? 'fixed bottom-0 left-0 right-0 bg-white p-4 border-t' : 'flex justify-end space-x-3 pt-4'}`}>
+            {!isMobile && (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                انصراف
+              </button>
+            )}
             <button
               type="submit"
-              disabled={addWalletMutation.isPending}
-              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-colors disabled:opacity-70"
+              disabled={addWalletMutation.isPending || isLoading || !!error || validationState === 'invalid' || validationState === 'validating'}
+              className={`${isMobile ? 'w-full' : ''} px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-70`}
             >
               {addWalletMutation.isPending ? (
                 <span className="flex items-center justify-center">
@@ -177,7 +397,6 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess }: AddWalletModalProps) => 
           </div>
         </form>
 
-        {/* تاییدیه خروج */}
         {showExitConfirm && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center p-6">
             <div className="text-center">
