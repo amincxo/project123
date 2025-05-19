@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthStatus } from '@/hooks/useAuthStatus';
-import Logo from './module/Logo';
+import Logo from './module/login/Logo';
 
 export default function Header() {
   const pathname = usePathname();

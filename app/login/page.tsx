@@ -3,9 +3,9 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { setCookie } from 'cookies-next';
 import { useState, useEffect } from 'react';
-import Exbutton from '@/components/shared/module/ExButton';
-import ExInput from '@/components/shared/module/ExInput';
-import Logo from '@/components/shared/module/Logo';
+import Exbutton from '@/components/shared/module/login/ExButton';
+import ExInput from '@/components/shared/module/login/ExInput';
+import Logo from '@/components/shared/module/login/Logo';
 import { useAuthStatus } from '@/hooks/useAuthStatus';
 
 interface LoginFormData {

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import ConfirmationModal from './shared/module/wallet/ConfirmationModal';
+import FormFooter from './shared/module/wallet/FormFooter';
 
 interface AddWalletModalProps {
   isOpen: boolean;
@@ -126,7 +127,7 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess, isMobile = false }: AddWal
     } finally {
       setIsValidating(false);
     }
-  }, 9000), [formData.network, networkOptions]);
+  }, 1500), [formData.network, networkOptions]);
 
   useEffect(() => {
     if (formData.address) {
@@ -241,7 +242,7 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess, isMobile = false }: AddWal
               value={formData.title}
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="مثال: کیف پول اصلی"
+              placeholder="مثال: کیف پول شرکت"
               required
             />
           </div>
@@ -329,7 +330,7 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess, isMobile = false }: AddWal
                   validationState === 'valid' ? 'border-green-500' :
                   'border-gray-300'
                 } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                placeholder="مثال: DFGSDFG..."
+                placeholder="مثال: C7b098defB751B7401B5f6d8"
                 required
               />
               {validationState === 'validating' && (
@@ -365,63 +366,31 @@ const AddWalletModal = ({ isOpen, onClose, onSuccess, isMobile = false }: AddWal
               value={formData.memo}
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="مثال: SDFSDF..."
+              placeholder="مثال: برای پرداخت های شرکت"
             />
           </div>
 
-          <div className={`${isMobile ? 'fixed bottom-0 left-0 right-0 bg-white p-4 border-t' : 'flex justify-end space-x-3 pt-4'}`}>
-            {!isMobile && (
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                انصراف
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={addWalletMutation.isPending || isLoading || !!error || validationState === 'invalid' || validationState === 'validating'}
-              className={`${isMobile ? 'w-full' : ''} px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-70`}
-            >
-              {addWalletMutation.isPending ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  در حال ذخیره...
-                </span>
-              ) : 'ذخیره کیف پول'}
-            </button>
-          </div>
+
+        <FormFooter
+          isMobile={isMobile}
+          onCancel={!isMobile ? handleClose : undefined}
+          onSubmit={handleSubmit}
+          submitText="ذخیره کیف پول"
+          isSubmitting={addWalletMutation.isPending}
+          isDisabled={isLoading || !!error || validationState === 'invalid' || validationState === 'validating'}
+        />
         </form>
 
-        {showExitConfirm && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex items-center justify-center p-6">
-            <div className="text-center">
-              <h4 className="font-bold text-lg mb-3 text-gray-800">آیا مطمئن هستید؟</h4>
-              <p className="mb-4 text-gray-600">تغییرات ذخیره نشده از بین خواهند رفت.</p>
-              <div className="flex justify-center space-x-3">
-                <button
-                  onClick={() => setShowExitConfirm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  بازگشت
-                </button>
-                <button
-                  onClick={() => {
-                    setShowExitConfirm(false);
-                    onClose();
-                  }}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                >
-                  بله، خارج شو
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <ConfirmationModal
+          isOpen={showExitConfirm}
+          title="آیا مطمئن هستید؟"
+          message="تغییرات ذخیره نشده از بین خواهند رفت."
+          onConfirm={() => {
+            setShowExitConfirm(false);
+            onClose();
+          }}
+          onCancel={() => setShowExitConfirm(false)}
+        />
       </div>
     </div>
   );
