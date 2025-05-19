@@ -10,12 +10,24 @@ interface FaqItem {
 interface CategoryGroup {
   [category: string]: FaqItem[];
 }
+interface RawFaq {
+  faqCategory?: {
+    title?: string;
+  };
+  question: {
+    id: number;
+    question: string;
+    answer: string;
+  }[];
+}
+
 
 async function getFAQs() {
   const res = await fetch(
     'https://panel.irxe.com/api/faqs?populate=*&filters[faqType][slug][$eq]=support',
-    { next: { revalidate: 60 } }
+    { next: { revalidate: 60 * 60 } }
   );
+  console.log('Fetching FAQs...')
   const data = await res.json();
   return data.data;
 }
@@ -23,10 +35,10 @@ async function getFAQs() {
 export default async function FaqAccordion() {
   const faqs = await getFAQs();
 
-  const grouped: CategoryGroup = faqs.reduce((acc: CategoryGroup, item: any) => {
+  const grouped: CategoryGroup = faqs.reduce((acc: CategoryGroup, item: RawFaq) => {
     const category = item.faqCategory?.title || 'دسته‌بندی نشده';
     if (!acc[category]) acc[category] = [];
-    item.question.forEach((q: any) => {
+    item.question.forEach((q: FaqItem) => {
       acc[category].push({
         id: q.id,
         question: q.question,
@@ -83,3 +95,5 @@ export default async function FaqAccordion() {
     </div>
   );
 }
+
+

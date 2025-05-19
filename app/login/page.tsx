@@ -3,10 +3,14 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { setCookie } from 'cookies-next';
 import { useState, useEffect } from 'react';
+
+import { useAuthStatus } from '@/hooks/useAuthStatus';
+
+
+
 import Exbutton from '@/components/shared/module/login/ExButton';
 import ExInput from '@/components/shared/module/login/ExInput';
 import Logo from '@/components/shared/module/login/Logo';
-import { useAuthStatus } from '@/hooks/useAuthStatus';
 
 interface LoginFormData {
   mobile: string;
@@ -39,11 +43,10 @@ export default function LoginPage() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   // استفاده از هوک موجود برای بررسی وضعیت احراز هویت
-  const { data: authData, isLoading: isAuthLoading, isError: isAuthError } = useAuthStatus();
-
+  const { data: authData, isLoading: isAuthLoading } = useAuthStatus();
   // ریدایرکت اگر کاربر قبلاً لاگین کرده باشد
   useEffect(() => {
-    if (authData?.status === 'success' || authData?.user) {
+    if (authData?.status === 'success' && authData?.data) {
       router.push('/');
     }
   }, [authData, router]);
@@ -134,7 +137,7 @@ export default function LoginPage() {
   }
 
   // اگر کاربر لاگین کرده، چیزی نمایش نده (ریدایرکت در useEffect انجام می‌شود)
-  if (authData?.status === 'success' && authData?.user) {
+  if (authData?.status === 'success' && authData?.data) {
     return null;
   }
 
@@ -170,7 +173,7 @@ export default function LoginPage() {
               required
               error={!!errors.mobile}
               helperText={errors.mobile}
-              disabled={loginMutation.isPending}
+              // disabled={loginMutation.isPending}
             />
 
             <ExInput
@@ -183,15 +186,15 @@ export default function LoginPage() {
               required
               error={!!errors.password}
               helperText={errors.password}
-              disabled={loginMutation.isPending}
+              // disabled={loginMutation.isPending}
             />
 
             <Exbutton
               title={loginMutation.isPending ? 'در حال ورود...' : 'ورود'}
-              type="submit"
+              // type="submit"
               disabled={loginMutation.isPending}
               className="w-full mt-4"
-              loading={loginMutation.isPending}
+              // loading={loginMutation.isPending}
             />
           </div>
         </form>

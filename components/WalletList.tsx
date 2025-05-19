@@ -11,7 +11,12 @@ import { toast } from 'react-toastify';
 import AddWalletModal from './AddWalletModal';
 import DeleteWalletModal from './DeleteWalletModal';
 
-
+interface IApiError {
+  response?: {
+    status: number;
+  };
+  message?: string;
+}
 
 const WalletList = () => {
   const router = useRouter();
@@ -30,15 +35,17 @@ const WalletList = () => {
     retry: 1
   });
 
-  useEffect(() => {
-    if (isError && (
-      (error as any)?.response?.status === 401 || 
-      (error as any)?.message?.includes('Unauthorized')
-    )) {
-      router.push('/login');
+ useEffect(() => {
+    if (isError) {
+      const apiError = error as IApiError;
+      if (apiError?.response?.status === 401 || 
+          apiError?.message?.includes('Unauthorized')) {
+        router.push('/login');
+      }
     }
   }, [isError, error, router]);
 
+  
   const handleCopyAddress = (address: string) => {
     navigator.clipboard.writeText(address);
     toast.success('آدرس با موفقیت کپی شد');

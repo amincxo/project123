@@ -5,7 +5,7 @@ import { ReactNode } from 'react';
 interface FormFooterProps {
   isMobile?: boolean;
   onCancel?: () => void;
-  onSubmit: () => void;
+  onSubmit: (e: React.FormEvent) => void;
   submitText: string;
   cancelText?: string;
   isSubmitting?: boolean;

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import FaqAccordion from '@/components/FaqAccordion'
 import Slider from '@/components/shared/Slider'
 import UserList from '@/components/UserList'

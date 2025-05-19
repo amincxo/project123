@@ -1,17 +1,19 @@
 // hooks/useAuthStatus.ts
 import { useQuery } from '@tanstack/react-query';
 
-type User = {
-  _id: string;
-  fullName: string;
-  email: string;
-  // سایر فیلدهای کاربر
-};
+// type User = {
+//   _id: string;
+//   fullName: string;
+//   email: string;
+// };
 
+// types/auth.ts
 type AuthStatusResponse = {
   status: 'success' | 'error';
   status_code: number;
-  user: User | null;
+  data: {  
+    full_name: string;
+  } | null;
 };
 
 export const useAuthStatus = () => {

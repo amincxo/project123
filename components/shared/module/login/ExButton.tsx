@@ -4,6 +4,7 @@ import React from 'react';
 interface MuiButtonProps {
   title: string;
   className?: string;
+  disabled?: boolean;
   onClick?: () => void;
 }
 
